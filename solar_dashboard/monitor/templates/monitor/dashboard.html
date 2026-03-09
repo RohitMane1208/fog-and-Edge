@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Solar Farm Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        #alert {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Smart Solar Farm Monitoring</h1>
+
+    <h2>Latest Panel Status</h2>
+
+    <p>Voltage: <span id="voltage">{{ latest.voltage }}</span> V</p>
+    <p>Current: <span id="current">{{ latest.current }}</span> A</p>
+    <p>Power: <span id="power">{{ latest.power_watt }}</span> W</p>
+    <p>Temperature: <span id="temperature">{{ latest.temperature }}</span> °C</p>
+
+    <p id="alert" style="color: {% if latest.local_alert %}red{% else %}green{% endif %}">
+        {% if latest.local_alert %}
+        ⚠ ALERT DETECTED
+        {% else %}
+        System Normal
+        {% endif %}
+    </p>
+
+    <h2>Recent Readings</h2>
+
+    <table id="recent-readings">
+        <tr>
+            <th>Voltage</th>
+            <th>Current</th>
+            <th>Power</th>
+            <th>Temperature</th>
+            <th>Time</th>
+        </tr>
+        {% for r in readings %}
+        <tr data-id="{{ r.id }}">
+            <td>{{ r.voltage }}</td>
+            <td>{{ r.current }}</td>
+            <td>{{ r.power_watt }}</td>
+            <td>{{ r.temperature }}</td>
+            <td>{{ r.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- AJAX Polling Script -->
+    <script>
+        // Track the latest reading ID to avoid duplicates
+        let latestId = {% if readings %}{{ readings.first.id }}{% else %}0{% endif %};
+
+        function updateDashboard(){
+            // Fetch latest panel status
+            fetch('/api/latest/')
+            .then(response => response.json())
+            .then(data => {
+                // Update Latest Panel Status
+                document.getElementById('voltage').innerText = data.voltage;
+                document.getElementById('current').innerText = data.current;
+                document.getElementById('power').innerText = data.power_watt;
+                document.getElementById('temperature').innerText = data.temperature;
+
+                const alertElem = document.getElementById('alert');
+                if(data.local_alert){
+                    alertElem.style.color = 'red';
+                    alertElem.innerText = '⚠ ALERT DETECTED';
+                } else {
+                    alertElem.style.color = 'green';
+                    alertElem.innerText = 'System Normal';
+                }
+            })
+            .catch(err => console.error('Error fetching latest panel data:', err));
+
+            // Fetch latest 20 readings for Recent Readings table
+            fetch('/api/recent/')
+            .then(response => response.json())
+            .then(readings => {
+                const table = document.getElementById('recent-readings');
+
+                // Clear all rows except the header
+                table.innerHTML = `
+                <tr>
+                    <th>Voltage</th>
+                    <th>Current</th>
+                    <th>Power</th>
+                    <th>Temperature</th>
+                    <th>Time</th>
+                </tr>`;
+
+                readings.forEach(r => {
+                    const row = table.insertRow(-1);
+                    row.setAttribute('data-id', r.id);
+                    row.insertCell(0).innerText = r.voltage;
+                    row.insertCell(1).innerText = r.current;
+                    row.insertCell(2).innerText = r.power_watt;
+                    row.insertCell(3).innerText = r.temperature;
+                    row.insertCell(4).innerText = r.timestamp;
+                });
+            })
+            .catch(err => console.error('Error fetching recent readings:', err));
+        }
+
+        // Poll every 2 seconds
+        setInterval(updateDashboard, 2000);
+        updateDashboard(); // Initial load
+    </script>
+
+</body>
+</html>
