@@ -4,28 +4,44 @@
     <meta charset="UTF-8">
     <title>Smart Solar Farm Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f8f9fa; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block; margin-right: 10px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
-        th { background-color: #2c3e50; color: white; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
-        .verified { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: inline-block; min-width: 150px; margin-right: 15px; text-align: center; }
+        .card b { font-size: 1.5em; color: #2c3e50; }
+        .card-label { display: block; font-size: 0.8em; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 30px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background-color: #2c3e50; color: white; font-weight: 500; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; text-transform: uppercase; }
+        .verified { background-color: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; }
+        .fog { background-color: #f5f5f5; color: #616161; border: 1px solid #e0e0e0; }
+        .alert-box { margin: 20px 0; padding: 15px; border-radius: 8px; display: inline-block; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>Smart Solar Farm Monitoring (User-Tier)</h1>
+    <header>
+        <h1>Smart Solar Farm Monitoring</h1>
+        <p>Resource: <strong>DynamoDB (Global-Tier Storage)</strong></p>
+    </header>
 
-    <div class="card">Voltage: <b id="voltage">{{ latest.voltage }}</b> V</div>
-    <div class="card">Power: <b id="power">{{ latest.power_watt }}</b> W</div>
-    <div class="card">Temperature: <b id="temperature">{{ latest.temperature }}</b> °C</div>
+    <div class="card">
+        <span class="card-label">Voltage</span>
+        <b id="voltage">{{ latest.voltage|default:"0" }}</b> V
+    </div>
+    <div class="card">
+        <span class="card-label">Power Output</span>
+        <b id="power">{{ latest.power_watt|default:"0" }}</b> W
+    </div>
+    <div class="card">
+        <span class="card-label">Temperature</span>
+        <b id="temperature">{{ latest.temperature|default:"0" }}</b> °C
+    </div>
 
-    <p id="alert" style="font-weight:bold; color: {% if latest.local_alert %}red{% else %}green{% endif %}">
-        {% if latest.local_alert %}⚠ ALERT DETECTED{% else %}System Normal{% endif %}
-    </p>
+    <div id="alert-container" class="alert-box" style="background-color: {% if latest.local_alert %}#ffebee{% else %}#e8f5e9{% endif %}; color: {% if latest.local_alert %}#c62828{% else %}#2e7d32{% endif %};">
+        <span id="alert">{% if latest.local_alert %}⚠ ANOMALY DETECTED{% else %}✔ SYSTEM NORMAL{% endif %}</span>
+    </div>
 
-    <h2>Scalable Telemetry Logs</h2>
+    <h2>Scalable Telemetry Logs (Cloud-Synced)</h2>
 
     <table id="recent-readings">
         <thead>
@@ -33,21 +49,22 @@
                 <th>Voltage</th>
                 <th>Power</th>
                 <th>Temperature</th>
-                <th>Time</th>
-                <th>Cloud Scaling Status</th> </tr>
+                <th>Time (UTC)</th>
+                <th>Scaling Pipeline</th>
+            </tr>
         </thead>
         <tbody>
             {% for r in readings %}
             <tr>
-                <td>{{ r.voltage }}</td>
-                <td>{{ r.power_watt }}</td>
-                <td>{{ r.temperature }}</td>
-                <td>{{ r.timestamp|date:"H:i:s" }}</td>
+                <td>{{ r.voltage }}V</td>
+                <td>{{ r.power_watt }}W</td>
+                <td>{{ r.temperature }}°C</td>
+                <td>{{ r.time_only }}</td>
                 <td>
                     {% if r.cloud_processed %}
                     <span class="status-badge verified">Lambda Optimized (SQS)</span>
                     {% else %}
-                    <span class="status-badge">Fog Direct</span>
+                    <span class="status-badge fog">Fog Direct</span>
                     {% endif %}
                 </td>
             </tr>
@@ -57,17 +74,29 @@
 
     <script>
         function updateDashboard(){
+            // Update the Top Summary Cards
             fetch('/api/latest/')
             .then(response => response.json())
             .then(data => {
                 document.getElementById('voltage').innerText = data.voltage;
                 document.getElementById('power').innerText = data.power_watt;
                 document.getElementById('temperature').innerText = data.temperature;
-                const alertElem = document.getElementById('alert');
-                alertElem.style.color = data.local_alert ? 'red' : 'green';
-                alertElem.innerText = data.local_alert ? '⚠ ALERT DETECTED' : 'System Normal';
+                
+                const container = document.getElementById('alert-container');
+                const text = document.getElementById('alert');
+                
+                if (data.local_alert) {
+                    container.style.backgroundColor = '#ffebee';
+                    container.style.color = '#c62828';
+                    text.innerText = '⚠ ANOMALY DETECTED';
+                } else {
+                    container.style.backgroundColor = '#e8f5e9';
+                    container.style.color = '#2e7d32';
+                    text.innerText = '✔ SYSTEM NORMAL';
+                }
             });
 
+            // Update the Logs Table
             fetch('/api/recent/')
             .then(response => response.json())
             .then(readings => {
@@ -75,20 +104,22 @@
                 tableBody.innerHTML = ''; 
                 readings.forEach(r => {
                     const row = tableBody.insertRow(-1);
-                    row.insertCell(0).innerText = r.voltage;
-                    row.insertCell(1).innerText = r.power_watt;
-                    row.insertCell(2).innerText = r.temperature;
+                    row.insertCell(0).innerText = r.voltage + "V";
+                    row.insertCell(1).innerText = r.power_watt + "W";
+                    row.insertCell(2).innerText = r.temperature + "°C";
                     row.insertCell(3).innerText = r.timestamp;
                     
                     const statusCell = row.insertCell(4);
                     if(r.cloud_processed) {
                         statusCell.innerHTML = '<span class="status-badge verified">Lambda Optimized (SQS)</span>';
                     } else {
-                        statusCell.innerHTML = '<span class="status-badge">Fog Direct</span>';
+                        statusCell.innerHTML = '<span class="status-badge fog">Fog Direct</span>';
                     }
                 });
             });
         }
+
+        // Poll every 2 seconds for that "real-time" feel
         setInterval(updateDashboard, 2000);
     </script>
 </body>
