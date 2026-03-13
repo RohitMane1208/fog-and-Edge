@@ -5,7 +5,6 @@ from decimal import Decimal
 from datetime import datetime
 
 # Initialize DynamoDB Resource
-# In AWS Academy/Elastic Beanstalk, it uses the environment's IAM Role automatically
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('SolarData_New')
 
@@ -15,35 +14,55 @@ def decimal_default(obj):
         return float(obj)
     return obj
 
-def get_processed_items(limit=20):
-    """Utility to fetch and clean items from DynamoDB"""
-    response = table.scan(Limit=50) # Scan slightly more to ensure we have enough after sorting
-    items = response.get('Items', [])
+def get_processed_items(limit=20, fetch_all=False):
+    """
+    Utility to fetch and clean items from DynamoDB.
+    fetch_all=True will bypass the scan limit and pull the entire table.
+    """
+    items = []
     
-    # Sort by timestamp descending (newest first)
+    # 1. Fetching Logic
+    if fetch_all:
+        # Paginating to get every single record in the table
+        response = table.scan()
+        items.extend(response.get('Items', []))
+        
+        # Keep scanning if there is a 'LastEvaluatedKey' (more data exists)
+        while 'LastEvaluatedKey' in response:
+            response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+            items.extend(response.get('Items', []))
+    else:
+        # Standard fetch for quick dashboard updates
+        response = table.scan() # Returns up to 1MB of data
+        items = response.get('Items', [])
+    
+    # 2. Sort by timestamp descending (newest first)
     items.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
     
-    # Take the top N and clean Decimal types
+    # 3. Clean and Process the top N items
+    # Note: Even if we fetch 1000s, we only format the ones we display to save CPU
     clean_items = []
     for item in items[:limit]:
         clean_item = {k: decimal_default(v) for k, v in item.items()}
         
-        # Format the timestamp for the frontend (convert epoch to readable string)
         if 'timestamp' in clean_item:
             dt_object = datetime.fromtimestamp(clean_item['timestamp'])
             clean_item['timestamp_str'] = dt_object.strftime("%Y-%m-%d %H:%M:%S")
             clean_item['time_only'] = dt_object.strftime("%H:%M:%S")
             
         clean_items.append(clean_item)
+        
     return clean_items
 
 def dashboard(request):
-    readings = get_processed_items(20)
+    # Pass fetch_all=True if you want the initial page load to consider everything
+    readings = get_processed_items(limit=20, fetch_all=True)
     latest = readings[0] if readings else None
     return render(request, "monitor/dashboard.html", {"readings": readings, "latest": latest})
 
 def latest_sensor_data(request):
-    readings = get_processed_items(1)
+    # Only need 1, so no need to fetch everything here (saves performance)
+    readings = get_processed_items(limit=1, fetch_all=False)
     if not readings:
         data = {"voltage": 0, "current": 0, "power_watt": 0, "temperature": 0, "local_alert": False, "cloud_processed": False}
     else:
@@ -60,8 +79,8 @@ def latest_sensor_data(request):
     return JsonResponse(data)
 
 def recent_readings(request):
-    readings = get_processed_items(20)
-    # We map the internal names to the keys your JS expects
+    # Fetch all so the table shows the full history (up to your limit)
+    readings = get_processed_items(limit=100, fetch_all=True)
     data = []
     for r in readings:
         data.append({
