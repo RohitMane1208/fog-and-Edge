@@ -6,7 +6,7 @@ from datetime import datetime
 
 # Initialize DynamoDB Resource
 dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
-table = dynamodb.Table('SolarData_New')
+table = dynamodb.Table('SolarData_Final')
 
 def decimal_default(obj):
     """Helper to convert Decimal to float for JSON/Frontend compatibility"""

@@ -6,10 +6,10 @@ from awscrt.mqtt import QoS
 from awsiot import mqtt_connection_builder
 from monitor.models import SolarReading
 
-ENDPOINT = "a1e55si5y6nep5-ats.iot.us-east-1.amazonaws.com"
-CERT = "/home/ec2-user/environment/smart_solar_farm/certs/bada0bc5236e5e5252cdf606acbd8ad77a794cd50e489ec7c27f10edca69ab11-certificate.pem.crt"
-KEY = "/home/ec2-user/environment/smart_solar_farm/certs/bada0bc5236e5e5252cdf606acbd8ad77a794cd50e489ec7c27f10edca69ab11-private.pem.key"
-ROOT = "/home/ec2-user/environment/smart_solar_farm/certs/AmazonRootCA1.pem"
+ENDPOINT = "a1f1z1gmexcnut-ats.iot.us-east-1.amazonaws.com"
+CERT = "/home/ec2-user/environment/fog-and-Edge/certs/f8105eccd5258be9bcbb21e49b9471875de970e0b19963e3777d7931ef6ba17e-certificate.pem.crt"
+KEY = "/home/ec2-user/environment/fog-and-Edge/certs/f8105eccd5258be9bcbb21e49b9471875de970e0b19963e3777d7931ef6ba17e-private.pem.key"
+ROOT = "/home/ec2-user/environment/fog-and-Edge/certs/AmazonRootCA1.pem"
 TOPIC = "solar/telemetry"
 
 class Command(BaseCommand):
