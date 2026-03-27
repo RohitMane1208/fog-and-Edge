@@ -9,12 +9,12 @@ from awscrt.mqtt import QoS
 from awsiot import mqtt_connection_builder
 from fog_layer.fog_processor import process_data
 
-ENDPOINT = "a1e55si5y6nep5-ats.iot.us-east-1.amazonaws.com"
-TOPIC = "solar/telemetry"
+ENDPOINT = "a3s1uiaet0y05r-ats.iot.us-east-1.amazonaws.com"
+TOPIC = "solar/Data"
 
-CERT = "/home/ec2-user/environment/smart_solar_farm/certs/bada0bc5236e5e5252cdf606acbd8ad77a794cd50e489ec7c27f10edca69ab11-certificate.pem.crt"
-KEY = "/home/ec2-user/environment/smart_solar_farm/certs/bada0bc5236e5e5252cdf606acbd8ad77a794cd50e489ec7c27f10edca69ab11-private.pem.key"
-ROOT = "/home/ec2-user/environment/smart_solar_farm/certs/AmazonRootCA1.pem"
+CERT = "/mnt/c/Users/Rohit/Desktop/fog-and-Edge/certs/100583987a1821682b084d49d2f26391b7025b4b38083dada499fbb1ddb21400-certificate.pem.crt"
+KEY = "/mnt/c/Users/Rohit/Desktop/fog-and-Edge/certs/100583987a1821682b084d49d2f26391b7025b4b38083dada499fbb1ddb21400-private.pem.key"
+ROOT = "/mnt/c/Users/Rohit/Desktop/fog-and-Edge/certs/AmazonRootCA1 (2).pem"
 
 INTERVAL = 5
 
