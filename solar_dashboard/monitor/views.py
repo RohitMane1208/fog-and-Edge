@@ -1,4 +1,4 @@
-import boto3
+import boto3 #boto
 from django.shortcuts import render
 from django.http import JsonResponse
 from decimal import Decimal
