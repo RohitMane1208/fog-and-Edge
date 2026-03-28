@@ -7,10 +7,10 @@ from awsiot import mqtt_connection_builder
 from monitor.models import SolarReading
 
 ENDPOINT = "a3s1uiaet0y05r-ats.iot.us-east-1.amazonaws.com"
-CERT = "C:\Users\Rohit\Desktop\fog-and-Edge\certs\100583987a1821682b084d49d2f26391b7025b4b38083dada499fbb1ddb21400-certificate.pem.crt"
-KEY = "C:\Users\Rohit\Desktop\fog-and-Edge\certs\100583987a1821682b084d49d2f26391b7025b4b38083dada499fbb1ddb21400-private.pem.key"
-ROOT = "C:\Users\Rohit\Desktop\fog-and-Edge\certs\AmazonRootCA1 (2).pem"
-TOPIC = "solar/data"
+CERT = "/mnt/c/Users/Rohit/Desktop/fog-and-Edge/certs/100583987a1821682b084d49d2f26391b7025b4b38083dada499fbb1ddb21400-certificate.pem.crt"
+KEY = "/mnt/c/Users/Rohit/Desktop/fog-and-Edge/certs/100583987a1821682b084d49d2f26391b7025b4b38083dada499fbb1ddb21400-private.pem.key"
+ROOT = "/mnt/c/Users/Rohit/Desktop/fog-and-Edge/certs/AmazonRootCA1 (2).pem"
+TOPIC = "solar/telemetry"
 
 class Command(BaseCommand):
     help = "Listen to MQTT sensor data and save to database"

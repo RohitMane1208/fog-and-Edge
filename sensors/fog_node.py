@@ -40,4 +40,4 @@ mqtt_connection.subscribe(topic="solar/raw/+", qos=QoS.AT_LEAST_ONCE, callback=o
 
 print("Fog Gateway Listening for Raw Sensors...")
 while True:
-    time.sleep(1)
+    time.sleep(5)
