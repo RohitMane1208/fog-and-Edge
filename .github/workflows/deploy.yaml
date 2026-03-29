@@ -25,8 +25,14 @@ jobs:
           pip install -r requirements.txt
 
       - name: Generate Deployment Package
-        cp solar_dashboard/requirements.txt .
-        run: zip -r deploy_package.zip . -x "*.git*" # Package everything except git history
+        run: |
+          # Move critical deployment files to the root so AWS can see them
+          cp solar_dashboard/requirements.txt .
+          # If your Procfile is inside the solar_dashboard folder, uncomment the next line:
+          cp solar_dashboard/Procfile . 
+          
+          # Create the zip, excluding the local venv and git history
+          zip -r deploy_package.zip . -x "*.git*" "venv/*" "*/venv/*"
 
       - name: Deploy to Elastic Beanstalk
         uses: einaregilsson/beanstalk-deploy@v22
