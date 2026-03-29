@@ -1,1 +1,1 @@
-web: gunicorn solar_dashboard.wsgi:application
+web: gunicorn --bind :8000 --chdir solar_dashboard solar_dashboard.wsgi:application
