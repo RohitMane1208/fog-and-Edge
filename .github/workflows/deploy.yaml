@@ -25,6 +25,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Generate Deployment Package
+        cp solar_dashboard/requirements.txt .
         run: zip -r deploy_package.zip . -x "*.git*" # Package everything except git history
 
       - name: Deploy to Elastic Beanstalk
