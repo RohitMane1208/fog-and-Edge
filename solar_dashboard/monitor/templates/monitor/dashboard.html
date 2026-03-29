@@ -12,7 +12,7 @@
         th, td { padding: 15px; text-align: center; border-bottom: 1px solid #eee; }
         th { background-color: #2c3e50; color: white; font-weight: 500; }
         
-        /* NEW: Alert Row Styling */
+        /* Alert Row Styling */
         .alert-row { background-color: #fff1f0 !important; color: #cf1322; font-weight: 500; }
         .alert-row td { border-bottom: 1px solid #ffa39e; }
 
@@ -43,7 +43,7 @@
     </div>
 
     <div id="alert-container" class="alert-box" style="background-color: {% if latest.local_alert %}#ffebee{% else %}#e8f5e9{% endif %}; color: {% if latest.local_alert %}#c62828{% else %}#2e7d32{% endif %};">
-        <span id="alert">{% if latest.local_alert %}⚠ ANOMALY DETECTED{% else %}✔ SYSTEM NORMAL{% endif %}</span>
+        <span id="alert">{% if latest.local_alert %} ANOMALY DETECTED{% else %} SYSTEM NORMAL{% endif %}</span>
     </div>
 
     <h2>Scalable Telemetry Logs (Cloud-Synced)</h2>
@@ -93,11 +93,11 @@
                 if (data.local_alert) {
                     container.style.backgroundColor = '#ffebee';
                     container.style.color = '#c62828';
-                    text.innerText = '⚠ ANOMALY DETECTED';
+                    text.innerText = 'ANOMALY DETECTED';
                 } else {
                     container.style.backgroundColor = '#e8f5e9';
                     container.style.color = '#2e7d32';
-                    text.innerText = '✔ SYSTEM NORMAL';
+                    text.innerText = 'SYSTEM NORMAL';
                 }
             });
 
@@ -130,7 +130,7 @@
             });
         }
 
-        // Poll every 2 seconds for that "real-time" feel
+        // Poll every 2 seconds
         setInterval(updateDashboard, 2000);
     </script>
 </body>

@@ -23,24 +23,22 @@ def get_processed_items(limit=20, fetch_all=False):
     
     # 1. Fetching Logic
     if fetch_all:
-        # Paginating to get every single record in the table
+        # to get every single record in the table
         response = table.scan()
         items.extend(response.get('Items', []))
         
-        # Keep scanning if there is a 'LastEvaluatedKey' (more data exists)
         while 'LastEvaluatedKey' in response:
             response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
             items.extend(response.get('Items', []))
     else:
         # Standard fetch for quick dashboard updates
-        response = table.scan() # Returns up to 1MB of data
+        response = table.scan()
         items = response.get('Items', [])
     
     # 2. Sort by timestamp descending (newest first)
     items.sort(key=lambda x: x.get('timestamp', 0), reverse=True)
     
-    # 3. Clean and Process the top N items
-    # Note: Even if we fetch 1000s, we only format the ones we display to save CPU
+    # 3. Process the top N items
     clean_items = []
     for item in items[:limit]:
         clean_item = {k: decimal_default(v) for k, v in item.items()}
@@ -55,13 +53,11 @@ def get_processed_items(limit=20, fetch_all=False):
     return clean_items
 
 def dashboard(request):
-    # Pass fetch_all=True if you want the initial page load to consider everything
     readings = get_processed_items(limit=20, fetch_all=True)
     latest = readings[0] if readings else None
     return render(request, "monitor/dashboard.html", {"readings": readings, "latest": latest})
 
 def latest_sensor_data(request):
-    # Only need 1, so no need to fetch everything here (saves performance)
     readings = get_processed_items(limit=1, fetch_all=False)
     if not readings:
         data = {"voltage": 0, "current": 0, "power_watt": 0, "temperature": 0, "local_alert": False, "cloud_processed": False}
@@ -79,7 +75,7 @@ def latest_sensor_data(request):
     return JsonResponse(data)
 
 def recent_readings(request):
-    # Fetch all so the table shows the full history (up to your limit)
+    # Fetch all so the table shows the full history
     readings = get_processed_items(limit=100, fetch_all=True)
     data = []
     for r in readings:

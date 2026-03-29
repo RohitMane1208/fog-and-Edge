@@ -10,7 +10,6 @@ class SolarReading(models.Model):
     power_watt = models.FloatField()
     local_alert = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
-    # New field to prove SQS/Lambda integration
     cloud_processed = models.BooleanField(default=False) 
 
     class Meta:
