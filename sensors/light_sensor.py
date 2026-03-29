@@ -4,7 +4,7 @@ import random
 from awscrt.mqtt import QoS
 from awsiot import mqtt_connection_builder
 
-# Config (Same as your original)
+# Config
 ENDPOINT = "a3s1uiaet0y05r-ats.iot.us-east-1.amazonaws.com"
 
 CERT = "/mnt/c/Users/Rohit/Desktop/fog-and-Edge/certs/100583987a1821682b084d49d2f26391b7025b4b38083dada499fbb1ddb21400-certificate.pem.crt"

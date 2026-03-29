@@ -5,7 +5,7 @@ import time
 from awscrt.mqtt import QoS
 from awsiot import mqtt_connection_builder
 
-# Add fog_layer to path
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from fog_layer.fog_processor import process_data
 
