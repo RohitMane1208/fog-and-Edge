@@ -68,6 +68,8 @@ def latest_sensor_data(request):
             "current": latest.get("current", 0),
             "power_watt": latest.get("power_watt", 0),
             "temperature": latest.get("temperature", 0),
+            "humidity": latest.get("humidity", 0),
+            "light_intensity": latest.get("light_intensity", 0),
             "local_alert": latest.get("local_alert", False),
             "cloud_processed": latest.get("cloud_processed", True),
             "timestamp": latest.get("timestamp_str", "")
@@ -83,6 +85,8 @@ def recent_readings(request):
             "voltage": r.get("voltage", 0),
             "power_watt": r.get("power_watt", 0),
             "temperature": r.get("temperature", 0),
+            "humidity": r.get("humidity", 0),
+            "light_intensity": r.get("light_intensity", 0),
             "local_alert": r.get("local_alert", False),
             "cloud_processed": r.get("cloud_processed", True),
             "timestamp": r.get("time_only", "")
