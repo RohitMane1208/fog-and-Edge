@@ -1,4 +1,64 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Solar Farm - Full Telemetry</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
+        .card-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); flex: 1; min-width: 140px; text-align: center; }
+        .card b { font-size: 1.4em; color: #2c3e50; }
+        .card-label { display: block; font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; }
+        .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .chart-wrapper { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 250px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 30px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
+        th { background-color: #2c3e50; color: white; }
+        .alert-row { background-color: #fff1f0 !important; color: #cf1322; font-weight: 500; }
+        .alert-box { margin-bottom: 20px; padding: 12px; border-radius: 8px; display: inline-block; font-weight: bold; width: 100%; text-align: center;}
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Smart Solar Farm Monitoring</h1>
+        <p>Resource: <strong>DynamoDB (Full Telemetry Pipeline)</strong></p>
+    </header>
+
+    <div id="alert-container" class="alert-box"><span id="alert">SYSTEM NORMAL</span></div>
+
+    <div class="card-container">
+        <div class="card"><span class="card-label">Voltage</span><b id="voltage">0</b> V</div>
+        <div class="card"><span class="card-label">Current</span><b id="current">0</b> A</div>
+        <div class="card"><span class="card-label">Power Output</span><b id="power">0</b> W</div>
+        <div class="card"><span class="card-label">Temperature</span><b id="temperature">0</b> °C</div>
+        <div class="card"><span class="card-label">Humidity</span><b id="humidity">0</b> %</div>
+        <div class="card"><span class="card-label">Light Intensity</span><b id="light">0</b> lx</div>
+    </div>
+
+    <div class="charts-container">
+        <div class="chart-wrapper"><canvas id="powerChart"></canvas></div>
+        <div class="chart-wrapper"><canvas id="tempChart"></canvas></div>
+        <div class="chart-wrapper"><canvas id="humidityChart"></canvas></div>
+        <div class="chart-wrapper"><canvas id="lightChart"></canvas></div>
+    </div>
+
+    <h2>Scalable Telemetry Logs (Cloud-Synced)</h2>
+    <table id="recent-readings">
+        <thead>
+            <tr>
+                <th>Time (UTC)</th>
+                <th>Power (W)</th>
+                <th>Temp (°C)</th>
+                <th>Humidity (%)</th>
+                <th>Light (lx)</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
     const chartOptions = (label, color) => ({
         type: 'line',
         data: {
