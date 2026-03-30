@@ -1,171 +1,102 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Smart Solar Farm - Full Telemetry</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
-        .card-container { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px; }
-        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); flex: 1; min-width: 140px; text-align: center; }
-        .card b { font-size: 1.4em; color: #2c3e50; }
-        .card-label { display: block; font-size: 0.75em; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; }
-        .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .chart-wrapper { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 250px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 30px; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        th, td { padding: 12px; text-align: center; border-bottom: 1px solid #eee; }
-        th { background-color: #2c3e50; color: white; }
-        .alert-row { background-color: #fff1f0 !important; color: #cf1322; font-weight: 500; }
-        .alert-box { margin-bottom: 20px; padding: 12px; border-radius: 8px; display: inline-block; font-weight: bold; width: 100%; text-align: center;}
-    </style>
-</head>
-<body>
+<script>
+    const chartOptions = (label, color) => ({
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: label, data: [], borderColor: color, borderWidth: 2,
+                backgroundColor: 'transparent', pointBackgroundColor: [], 
+                pointRadius: [], fill: false, tension: 0.2
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, animation: false }
+    });
 
-    <header>
-        <h1>Smart Solar Farm Monitoring</h1>
-        <p>Resource: <strong>DynamoDB (Full Telemetry Pipeline)</strong></p>
-    </header>
+    // Initialize Charts
+    const pChart = new Chart(document.getElementById('powerChart'), chartOptions('Power Output (W)', '#2e7d32'));
+    const tChart = new Chart(document.getElementById('tempChart'), chartOptions('Temperature (°C)', '#f57c00'));
+    const hChart = new Chart(document.getElementById('humidityChart'), chartOptions('Humidity (%)', '#0288d1'));
+    const lChart = new Chart(document.getElementById('lightChart'), chartOptions('Light Intensity (lx)', '#fbc02d'));
 
-    <div id="alert-container" class="alert-box"><span id="alert">SYSTEM NORMAL</span></div>
+    function updateDashboard(){
+        // 1. Update Top Summary Cards
+        fetch('/api/latest/').then(res => res.json()).then(data => {
+            document.getElementById('voltage').innerText = data.voltage || 0;
+            document.getElementById('current').innerText = data.current || 0;
+            document.getElementById('power').innerText = data.power_watt || 0;
+            document.getElementById('temperature').innerText = data.temperature || 0;
+            document.getElementById('humidity').innerText = data.humidity || 0;
+            document.getElementById('light').innerText = data.light_intensity || 0; // Corrected Key
 
-    <div class="card-container">
-        <div class="card"><span class="card-label">Voltage</span><b id="voltage">0</b> V</div>
-        <div class="card"><span class="card-label">Current</span><b id="current">0</b> A</div>
-        <div class="card"><span class="card-label">Power Output</span><b id="power">0</b> W</div>
-        <div class="card"><span class="card-label">Temperature</span><b id="temperature">0</b> °C</div>
-        <div class="card"><span class="card-label">Humidity</span><b id="humidity">0</b> %</div>
-        <div class="card"><span class="card-label">Light Intensity</span><b id="light">0</b> lx</div>
-    </div>
-
-    <div class="charts-container">
-        <div class="chart-wrapper"><canvas id="powerChart"></canvas></div>
-        <div class="chart-wrapper"><canvas id="tempChart"></canvas></div>
-        <div class="chart-wrapper"><canvas id="humidityChart"></canvas></div>
-        <div class="chart-wrapper"><canvas id="lightChart"></canvas></div>
-    </div>
-
-    <h2>Scalable Telemetry Logs (Cloud-Synced)</h2>
-    <table id="recent-readings">
-        <thead>
-            <tr>
-                <th>Time (UTC)</th>
-                <th>Power (W)</th>
-                <th>Temp (°C)</th>
-                <th>Humidity (%)</th>
-                <th>Light (lx)</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <script>
-        const chartOptions = (label, color) => ({
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: label, data: [], borderColor: color, borderWidth: 2,
-                    backgroundColor: 'transparent', pointBackgroundColor: [], 
-                    pointRadius: [], fill: false, tension: 0.2
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, animation: false }
+            const container = document.getElementById('alert-container');
+            const text = document.getElementById('alert');
+            container.style.backgroundColor = data.local_alert ? '#ffebee' : '#e8f5e9';
+            container.style.color = data.local_alert ? '#c62828' : '#2e7d32';
+            text.innerText = data.local_alert ? 'ANOMALY DETECTED' : 'SYSTEM NORMAL';
         });
 
-        const pChart = new Chart(document.getElementById('powerChart'), chartOptions('Power Output (W)', '#2e7d32'));
-        const tChart = new Chart(document.getElementById('tempChart'), chartOptions('Temperature (°C)', '#f57c00'));
-        const hChart = new Chart(document.getElementById('humidityChart'), chartOptions('Humidity (%)', '#0288d1'));
-        const lChart = new Chart(document.getElementById('lightChart'), chartOptions('Light Intensity (lx)', '#fbc02d'));
+        // 2. Update Graphs and Log Table
+        fetch('/api/recent/').then(res => res.json()).then(readings => {
+            const sorted = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            const labels = [], pData = [], tData = [], hData = [], lData = [];
+            const pColors = [], tColors = [], pRadii = [], tRadii = [];
 
-        function updateDashboard(){
-            // Update Top Cards
-            fetch('/api/latest/').then(res => res.json()).then(data => {
-                document.getElementById('voltage').innerText = data.voltage || 0;
-                document.getElementById('current').innerText = data.current || 0;
-                document.getElementById('power').innerText = data.power_watt || 0;
-                document.getElementById('temperature').innerText = data.temperature || 0;
-                document.getElementById('humidity').innerText = data.humidity || 0;
-                document.getElementById('light').innerText = data.light_intensity || 0;
-
-                const container = document.getElementById('alert-container');
-                const text = document.getElementById('alert');
-                container.style.backgroundColor = data.local_alert ? '#ffebee' : '#e8f5e9';
-                container.style.color = data.local_alert ? '#c62828' : '#2e7d32';
-                text.innerText = data.local_alert ? 'ANOMALY DETECTED' : 'SYSTEM NORMAL';
-            });
-
-            // Update Charts and Table
-            fetch('/api/recent/').then(res => res.json()).then(readings => {
-                const sorted = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            sorted.forEach(r => {
+                const time = r.timestamp.includes('T') ? r.timestamp.split('T')[1].substring(0, 8) : r.timestamp;
+                labels.push(time);
                 
-                const labels = [], pData = [], tData = [], hData = [], lData = [];
-                const pColors = [], tColors = [], pRadii = [], tRadii = [];
+                // DATA MAPPING - Keys must match your JSON exactly
+                const pwr = parseFloat(r.power_watt || 0);
+                const tmp = parseFloat(r.temperature || 0);
+                const hum = parseFloat(r.humidity || 0);
+                const lgt = parseFloat(r.light_intensity || 0); // Corrected Key
 
-                sorted.forEach(r => {
-                    const time = r.timestamp.includes('T') ? r.timestamp.split('T')[1].substring(0, 8) : r.timestamp;
-                    labels.push(time);
-                    
-                    const pwr = parseFloat(r.power_watt || 0);
-                    const tmp = parseFloat(r.temperature || 0);
-                    const hum = parseFloat(r.humidity || 0);
-                    const lgt = parseFloat(r.light_intensity || 0);
+                pData.push(pwr);
+                tData.push(tmp);
+                hData.push(hum);
+                lData.push(lgt);
 
-                    pData.push(pwr);
-                    tData.push(tmp);
-                    hData.push(hum);
-                    lData.push(lgt);
+                // Anomaly Highlighting Logic
+                if (tmp > 75) { tColors.push('#cf1322'); tRadii.push(6); } 
+                else { tColors.push('transparent'); tRadii.push(0); }
 
-                    // Anomaly Highlights
-                    if (tmp > 75) { 
-                        tColors.push('#cf1322'); 
-                        tRadii.push(6); 
-                    } else { 
-                        tColors.push('transparent'); 
-                        tRadii.push(0); 
-                    }
-
-                    if (pwr < 50 && lgt > 800) { 
-                        pColors.push('#cf1322'); 
-                        pRadii.push(6); 
-                    } else { 
-                        pColors.push('transparent'); 
-                        pRadii.push(0); 
-                    }
-                });
-
-                // Update Table
-                const tableBody = document.querySelector('#recent-readings tbody');
-                tableBody.innerHTML = ''; 
-                readings.forEach(r => {
-                    const row = tableBody.insertRow(-1);
-                    if (r.local_alert) row.classList.add('alert-row');
-                    row.insertCell(0).innerText = r.timestamp;
-                    row.insertCell(1).innerText = (r.power_watt || 0) + "W";
-                    row.insertCell(2).innerText = (r.temperature || 0) + "°C";
-                    row.insertCell(3).innerText = (r.humidity || 0) + "%";
-                    row.insertCell(4).innerText = (r.light_intensity || 0) + " lx";
-                });
-
-                // Corrected Refresh Chart Objects
-                const refresh = (chart, data, colors = [], radii = []) => {
-                    chart.data.labels = labels;
-                    chart.data.datasets[0].data = data;
-                    
-                    // Apply colors and radii if provided, otherwise default to standard point style
-                    chart.data.datasets[0].pointBackgroundColor = colors.length > 0 ? colors : chart.data.datasets[0].borderColor;
-                    chart.data.datasets[0].pointRadius = radii.length > 0 ? radii : 3;
-                    
-                    chart.update('none');
-                };
-
-                refresh(pChart, pData, pColors, pRadii);
-                refresh(tChart, tData, tColors, tRadii);
-                refresh(hChart, hData);
-                refresh(lChart, lData);
+                if (pwr < 50 && lgt > 800) { pColors.push('#cf1322'); pRadii.push(6); } 
+                else { pColors.push('transparent'); pRadii.push(0); }
             });
-        }
-        setInterval(updateDashboard, 5000);
-        updateDashboard();
-    </script>
-</body>
-</html>
+
+            // Update Log Table
+            const tableBody = document.querySelector('#recent-readings tbody');
+            tableBody.innerHTML = ''; 
+            readings.forEach(r => {
+                const row = tableBody.insertRow(-1);
+                if (r.local_alert) row.classList.add('alert-row');
+                row.insertCell(0).innerText = r.timestamp;
+                row.insertCell(1).innerText = (r.power_watt || 0) + "W";
+                row.insertCell(2).innerText = (r.temperature || 0) + "°C";
+                row.insertCell(3).innerText = (r.humidity || 0) + "%";
+                row.insertCell(4).innerText = (r.light_intensity || 0) + " lx";
+            });
+
+            // Universal Refresh Helper
+            const refresh = (chart, data, colors = [], radii = []) => {
+                chart.data.labels = labels;
+                chart.data.datasets[0].data = data;
+                
+                // If no specific anomaly colors provided, use default theme style
+                chart.data.datasets[0].pointBackgroundColor = colors.length > 0 ? colors : chart.data.datasets[0].borderColor;
+                chart.data.datasets[0].pointRadius = radii.length > 0 ? radii : 3;
+                
+                chart.update('none');
+            };
+
+            refresh(pChart, pData, pColors, pRadii);
+            refresh(tChart, tData, tColors, tRadii);
+            refresh(hChart, hData);
+            refresh(lChart, lData);
+        });
+    }
+
+    setInterval(updateDashboard, 5000);
+    updateDashboard();
+</script>
