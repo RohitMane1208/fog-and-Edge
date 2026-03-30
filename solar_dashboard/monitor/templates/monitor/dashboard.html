@@ -88,15 +88,16 @@
 
                     vData.push(vol); pData.push(pwr); tData.push(tmp);
 
-                    // 1. Temperature Anomaly logic
+                    // --- REVISED LOGIC ---
+                    // Temp Graph: Red dot if Temp is actually high
                     if (tmp > 75) { tColors.push('#cf1322'); tRadii.push(6); } 
                     else { tColors.push('transparent'); tRadii.push(0); }
 
-                    // 2. Power Anomaly logic (Matches your Python fog_processor)
-                    if (light > 800 && pwr < 50) { pColors.push('#cf1322'); pRadii.push(6); } 
+                    // Power Graph: Red dot if it matches the 'Low Power but High Light' rule
+                    if (pwr < 50 && light > 800) { pColors.push('#cf1322'); pRadii.push(6); } 
                     else { pColors.push('transparent'); pRadii.push(0); }
 
-                    // Voltage currently has no specific anomaly in your Python, keeping it clean
+                    // Voltage Graph: Stays clean as there is no specific rule for it yet
                     vColors.push('transparent'); vRadii.push(0);
                 });
 
@@ -111,7 +112,6 @@
                     row.insertCell(3).innerText = r.timestamp;
                 });
 
-                // Update charts
                 const updateChart = (chart, data, colors, radii) => {
                     chart.data.labels = labels;
                     chart.data.datasets[0].data = data;
