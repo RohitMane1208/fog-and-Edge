@@ -105,18 +105,32 @@
                     const time = r.timestamp.includes('T') ? r.timestamp.split('T')[1].substring(0, 8) : r.timestamp;
                     labels.push(time);
                     
-                    const pwr = parseFloat(r.power_watt), tmp = parseFloat(r.temperature);
+                    const pwr = parseFloat(r.power_watt || 0);
+                    const tmp = parseFloat(r.temperature || 0);
+                    const hum = parseFloat(r.humidity || 0);
+                    const lgt = parseFloat(r.light_intensity || 0);
+
                     pData.push(pwr);
                     tData.push(tmp);
-                    hData.push(parseFloat(r.humidity || 0));
-                    lData.push(parseFloat(r.light_intensity || 0));
+                    hData.push(hum);
+                    lData.push(lgt);
 
                     // Anomaly Highlights
-                    if (tmp > 75) { tColors.push('#cf1322'); tRadii.push(6); } 
-                    else { tColors.push('transparent'); tRadii.push(0); }
+                    if (tmp > 75) { 
+                        tColors.push('#cf1322'); 
+                        tRadii.push(6); 
+                    } else { 
+                        tColors.push('transparent'); 
+                        tRadii.push(0); 
+                    }
 
-                    if (pwr < 50 && r.light_intensity > 800) { pColors.push('#cf1322'); pRadii.push(6); } 
-                    else { pColors.push('transparent'); pRadii.push(0); }
+                    if (pwr < 50 && lgt > 800) { 
+                        pColors.push('#cf1322'); 
+                        pRadii.push(6); 
+                    } else { 
+                        pColors.push('transparent'); 
+                        pRadii.push(0); 
+                    }
                 });
 
                 // Update Table
@@ -132,12 +146,15 @@
                     row.insertCell(4).innerText = (r.light_intensity || 0) + " lx";
                 });
 
-                // Refresh Chart Objects
-                const refresh = (chart, data, colors, radii) => {
+                // Corrected Refresh Chart Objects
+                const refresh = (chart, data, colors = [], radii = []) => {
                     chart.data.labels = labels;
                     chart.data.datasets[0].data = data;
-                    if(colors) chart.data.datasets[0].pointBackgroundColor = colors;
-                    if(radii) chart.data.datasets[0].pointRadius = radii;
+                    
+                    // Apply colors and radii if provided, otherwise default to standard point style
+                    chart.data.datasets[0].pointBackgroundColor = colors.length > 0 ? colors : chart.data.datasets[0].borderColor;
+                    chart.data.datasets[0].pointRadius = radii.length > 0 ? radii : 3;
+                    
                     chart.update('none');
                 };
 
