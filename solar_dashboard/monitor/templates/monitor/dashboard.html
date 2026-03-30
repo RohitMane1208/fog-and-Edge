@@ -10,7 +10,6 @@
         .card b { font-size: 1.5em; color: #2c3e50; }
         .card-label { display: block; font-size: 0.8em; color: #7f8c8d; text-transform: uppercase; margin-bottom: 5px; }
         
-        /* Grid for Charts */
         .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
         .chart-wrapper { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 250px; }
 
@@ -34,31 +33,25 @@
 
     <div class="card">
         <span class="card-label">Voltage</span>
-        <b id="voltage">{{ latest.voltage|default:"0" }}</b> V
+        <b id="voltage">0</b> V
     </div>
     <div class="card">
         <span class="card-label">Power Output</span>
-        <b id="power">{{ latest.power_watt|default:"0" }}</b> W
+        <b id="power">0</b> W
     </div>
     <div class="card">
         <span class="card-label">Temperature</span>
-        <b id="temperature">{{ latest.temperature|default:"0" }}</b> °C
+        <b id="temperature">0</b> °C
     </div>
 
-    <div id="alert-container" class="alert-box" style="background-color: {% if latest.local_alert %}#ffebee{% else %}#e8f5e9{% endif %}; color: {% if latest.local_alert %}#c62828{% else %}#2e7d32{% endif %};">
-        <span id="alert">{% if latest.local_alert %} ANOMALY DETECTED{% else %} SYSTEM NORMAL{% endif %}</span>
+    <div id="alert-container" class="alert-box">
+        <span id="alert">SYSTEM NORMAL</span>
     </div>
 
     <div class="charts-container">
-        <div class="chart-wrapper">
-            <canvas id="voltageChart"></canvas>
-        </div>
-        <div class="chart-wrapper">
-            <canvas id="powerChart"></canvas>
-        </div>
-        <div class="chart-wrapper">
-            <canvas id="tempChart"></canvas>
-        </div>
+        <div class="chart-wrapper"><canvas id="voltageChart"></canvas></div>
+        <div class="chart-wrapper"><canvas id="powerChart"></canvas></div>
+        <div class="chart-wrapper"><canvas id="tempChart"></canvas></div>
     </div>
 
     <h2>Scalable Telemetry Logs (Cloud-Synced)</h2>
@@ -72,12 +65,10 @@
                 <th>Scaling Pipeline</th>
             </tr>
         </thead>
-        <tbody>
-            </tbody>
+        <tbody></tbody>
     </table>
 
     <script>
-        // Initialize Chart Configuration
         const chartOptions = (label, color) => ({
             type: 'line',
             data: {
@@ -88,18 +79,20 @@
                     borderColor: color,
                     backgroundColor: color + '22',
                     pointBackgroundColor: [], 
+                    pointRadius: [], // Control size of dots
+                    pointHoverRadius: 7,
                     fill: true,
-                    tension: 0.4
+                    tension: 0.3
                 }]
             },
             options: { 
                 responsive: true, 
                 maintainAspectRatio: false,
+                animation: false, // Performance boost for high-frequency updates
                 scales: { y: { beginAtZero: false } } 
             }
         });
 
-        // Create Chart Objects
         const vChart = new Chart(document.getElementById('voltageChart'), chartOptions('Voltage (V)', '#1976d2'));
         const pChart = new Chart(document.getElementById('powerChart'), chartOptions('Power (W)', '#2e7d32'));
         const tChart = new Chart(document.getElementById('tempChart'), chartOptions('Temp (°C)', '#f57c00'));
@@ -107,7 +100,7 @@
         function updateDashboard(){
             // 1. Update Top Summary Cards
             fetch('/api/latest/')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 document.getElementById('voltage').innerText = data.voltage;
                 document.getElementById('power').innerText = data.power_watt;
@@ -116,82 +109,72 @@
                 const container = document.getElementById('alert-container');
                 const text = document.getElementById('alert');
                 
-                if (data.local_alert) {
-                    container.style.backgroundColor = '#ffebee';
-                    container.style.color = '#c62828';
-                    text.innerText = 'ANOMALY DETECTED';
-                } else {
-                    container.style.backgroundColor = '#e8f5e9';
-                    container.style.color = '#2e7d32';
-                    text.innerText = 'SYSTEM NORMAL';
-                }
+                container.style.backgroundColor = data.local_alert ? '#ffebee' : '#e8f5e9';
+                container.style.color = data.local_alert ? '#c62828' : '#2e7d32';
+                text.innerText = data.local_alert ? 'ANOMALY DETECTED' : 'SYSTEM NORMAL';
             });
 
             // 2. Update Table and Charts
             fetch('/api/recent/')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(readings => {
-                const tableBody = document.querySelector('#recent-readings tbody');
-                tableBody.innerHTML = ''; 
+                // Ensure chronological order for the charts
+                const chartReadings = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
                 const labels = [];
                 const vData = [];
                 const pData = [];
                 const tData = [];
                 const pointColors = [];
-
-                // Reverse readings for chart (oldest to newest)
-                const chartReadings = [...readings].reverse();
+                const pointRadii = [];
 
                 chartReadings.forEach(r => {
-                    // Extract HH:MM:SS from timestamp
                     const timeLabel = r.timestamp.includes('T') ? r.timestamp.split('T')[1].substring(0, 8) : r.timestamp;
-                    
                     labels.push(timeLabel);
                     vData.push(parseFloat(r.voltage));
                     pData.push(parseFloat(r.power_watt));
                     tData.push(parseFloat(r.temperature));
-                    pointColors.push(r.local_alert ? '#cf1322' : '#ffffff');
+
+                    // Only show Red Dots for Anomaly, hide dots for normal data
+                    if (r.local_alert) {
+                        pointColors.push('#cf1322');
+                        pointRadii.push(5);
+                    } else {
+                        pointColors.push('transparent');
+                        pointRadii.push(0);
+                    }
                 });
 
-                // Update Table (Original order: latest at top)
+                // Update Table (Latest on top)
+                const tableBody = document.querySelector('#recent-readings tbody');
+                tableBody.innerHTML = ''; 
                 readings.forEach(r => {
                     const row = tableBody.insertRow(-1);
                     if (r.local_alert) row.classList.add('alert-row');
-                    
                     row.insertCell(0).innerText = r.voltage + "V";
                     row.insertCell(1).innerText = r.power_watt + "W";
                     row.insertCell(2).innerText = r.temperature + "°C";
                     row.insertCell(3).innerText = r.timestamp;
-                    
-                    const statusCell = row.insertCell(4);
-                    statusCell.innerHTML = r.cloud_processed ? 
+                    row.insertCell(4).innerHTML = r.cloud_processed ? 
                         '<span class="status-badge verified">Lambda Optimized (SQS)</span>' : 
                         '<span class="status-badge fog">Fog Direct</span>';
                 });
 
-                // Re-assign data and refresh charts
-                vChart.data.labels = labels;
-                vChart.data.datasets[0].data = vData;
-                vChart.data.datasets[0].pointBackgroundColor = pointColors;
-                vChart.update('none');
-
-                pChart.data.labels = labels;
-                pChart.data.datasets[0].data = pData;
-                pChart.data.datasets[0].pointBackgroundColor = pointColors;
-                pChart.update('none');
-
-                tChart.data.labels = labels;
-                tChart.data.datasets[0].data = tData;
-                tChart.data.datasets[0].pointBackgroundColor = pointColors;
-                tChart.update('none');
-            })
-            .catch(err => console.error("Dashboard Sync Error:", err));
+                // Update Charts
+                [vChart, pChart, tChart].forEach((chart, index) => {
+                    chart.data.labels = labels;
+                    chart.data.datasets[0].pointBackgroundColor = pointColors;
+                    chart.data.datasets[0].pointRadius = pointRadii;
+                    if(index === 0) chart.data.datasets[0].data = vData;
+                    if(index === 1) chart.data.datasets[0].data = pData;
+                    if(index === 2) chart.data.datasets[0].data = tData;
+                    chart.update('none');
+                });
+            });
         }
 
-        // Initial update and periodic interval
         updateDashboard();
-        setInterval(updateDashboard, 2000);
+        setInterval(updateDashboard, 5000); // 5-second interval to match heartbeat
     </script>
 </body>
 </html>
