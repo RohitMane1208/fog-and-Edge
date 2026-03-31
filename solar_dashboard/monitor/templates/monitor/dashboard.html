@@ -86,7 +86,7 @@
             document.getElementById('power').innerText = data.power_watt || 0;
             document.getElementById('temperature').innerText = data.temperature || 0;
             document.getElementById('humidity').innerText = data.humidity || 0;
-            document.getElementById('light').innerText = data.light_intensity || 0; // Corrected Key
+            document.getElementById('light').innerText = data.light_intensity || 0; 
 
             const container = document.getElementById('alert-container');
             const text = document.getElementById('alert');
@@ -100,29 +100,39 @@
             const sorted = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             
             const labels = [], pData = [], tData = [], hData = [], lData = [];
-            const pColors = [], tColors = [], pRadii = [], tRadii = [];
+            // Added hColors, hRadii, lColors, lRadii for the new anomaly logic
+            const pColors = [], tColors = [], hColors = [], lColors = [];
+            const pRadii = [], tRadii = [], hRadii = [], lRadii = [];
 
             sorted.forEach(r => {
                 const time = r.timestamp.includes('T') ? r.timestamp.split('T')[1].substring(0, 8) : r.timestamp;
                 labels.push(time);
                 
-                // DATA MAPPING - Keys must match your JSON exactly
                 const pwr = parseFloat(r.power_watt || 0);
                 const tmp = parseFloat(r.temperature || 0);
                 const hum = parseFloat(r.humidity || 0);
-                const lgt = parseFloat(r.light_intensity || 0); // Corrected Key
+                const lgt = parseFloat(r.light_intensity || 0);
 
                 pData.push(pwr);
                 tData.push(tmp);
                 hData.push(hum);
                 lData.push(lgt);
 
-                // Anomaly Highlighting Logic
+                // --- Temperature Anomaly (existing) ---
                 if (tmp > 75) { tColors.push('#cf1322'); tRadii.push(6); } 
                 else { tColors.push('transparent'); tRadii.push(0); }
 
+                // --- Power Anomaly (existing) ---
                 if (pwr < 50 && lgt > 800) { pColors.push('#cf1322'); pRadii.push(6); } 
                 else { pColors.push('transparent'); pRadii.push(0); }
+
+                // --- Humidity Anomaly Logic (NEW: Alert if > 80%) ---
+                if (hum > 80) { hColors.push('#cf1322'); hRadii.push(6); }
+                else { hColors.push('transparent'); hRadii.push(0); }
+
+                // --- Light Anomaly Logic (NEW: Alert if > 1000 lx) ---
+                if (lgt > 1000) { lColors.push('#cf1322'); lRadii.push(6); }
+                else { lColors.push('transparent'); lRadii.push(0); }
             });
 
             // Update Log Table
@@ -152,11 +162,13 @@
 
             refresh(pChart, pData, pColors, pRadii);
             refresh(tChart, tData, tColors, tRadii);
-            refresh(hChart, hData);
-            refresh(lChart, lData);
+            refresh(hChart, hData, hColors, hRadii); // Updated to pass anomaly info
+            refresh(lChart, lData, lColors, lRadii); // Updated to pass anomaly info
         });
     }
 
     setInterval(updateDashboard, 5000);
     updateDashboard();
 </script>
+</body>
+</html>
