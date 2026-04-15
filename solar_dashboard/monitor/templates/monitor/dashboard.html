@@ -29,8 +29,6 @@
     <div id="alert-container" class="alert-box"><span id="alert">SYSTEM NORMAL</span></div>
 
     <div class="card-container">
-        <div class="card"><span class="card-label">Voltage</span><b id="voltage">0</b> V</div>
-        <div class="card"><span class="card-label">Current</span><b id="current">0</b> A</div>
         <div class="card"><span class="card-label">Power Output</span><b id="power">0</b> W</div>
         <div class="card"><span class="card-label">Temperature</span><b id="temperature">0</b> °C</div>
         <div class="card"><span class="card-label">Humidity</span><b id="humidity">0</b> %</div>
@@ -81,12 +79,11 @@
     function updateDashboard(){
         // 1. Update Top Summary Cards
         fetch('/api/latest/').then(res => res.json()).then(data => {
-            document.getElementById('voltage').innerText = data.voltage || 0;
-            document.getElementById('current').innerText = data.current || 0;
-            document.getElementById('power').innerText = data.power_watt || 0;
-            document.getElementById('temperature').innerText = data.temperature || 0;
-            document.getElementById('humidity').innerText = data.humidity || 0;
-            document.getElementById('light').innerText = data.light_intensity || 0; 
+            // Note: voltage/current still exist in data but elements are removed from HTML
+            if(document.getElementById('power')) document.getElementById('power').innerText = data.power_watt || 0;
+            if(document.getElementById('temperature')) document.getElementById('temperature').innerText = data.temperature || 0;
+            if(document.getElementById('humidity')) document.getElementById('humidity').innerText = data.humidity || 0;
+            if(document.getElementById('light')) document.getElementById('light').innerText = data.light_intensity || 0; 
 
             const container = document.getElementById('alert-container');
             const text = document.getElementById('alert');
@@ -100,7 +97,6 @@
             const sorted = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             
             const labels = [], pData = [], tData = [], hData = [], lData = [];
-            // Added hColors, hRadii, lColors, lRadii for the new anomaly logic
             const pColors = [], tColors = [], hColors = [], lColors = [];
             const pRadii = [], tRadii = [], hRadii = [], lRadii = [];
 
@@ -118,19 +114,19 @@
                 hData.push(hum);
                 lData.push(lgt);
 
-                // --- Temperature Anomaly (existing) ---
+                // --- Temperature Anomaly ---
                 if (tmp > 75) { tColors.push('#cf1322'); tRadii.push(6); } 
                 else { tColors.push('transparent'); tRadii.push(0); }
 
-                // --- Power Anomaly (existing) ---
+                // --- Power Anomaly ---
                 if (pwr < 50 && lgt > 800) { pColors.push('#cf1322'); pRadii.push(6); } 
                 else { pColors.push('transparent'); pRadii.push(0); }
 
-                // --- Humidity Anomaly Logic (NEW: Alert if > 80%) ---
+                // --- Humidity Anomaly ---
                 if (hum > 80) { hColors.push('#cf1322'); hRadii.push(6); }
                 else { hColors.push('transparent'); hRadii.push(0); }
 
-                // --- Light Anomaly Logic (NEW: Alert if > 1000 lx) ---
+                // --- Light Anomaly ---
                 if (lgt > 1000) { lColors.push('#cf1322'); lRadii.push(6); }
                 else { lColors.push('transparent'); lRadii.push(0); }
             });
@@ -153,17 +149,17 @@
                 chart.data.labels = labels;
                 chart.data.datasets[0].data = data;
                 
-                // If no specific anomaly colors provided, use default theme style
+                // Logic change: If radii is not explicitly an anomaly (size 6), set to 0 to hide the "spike"
                 chart.data.datasets[0].pointBackgroundColor = colors.length > 0 ? colors : chart.data.datasets[0].borderColor;
-                chart.data.datasets[0].pointRadius = radii.length > 0 ? radii : 3;
+                chart.data.datasets[0].pointRadius = radii.length > 0 ? radii : 0; 
                 
                 chart.update('none');
             };
 
             refresh(pChart, pData, pColors, pRadii);
             refresh(tChart, tData, tColors, tRadii);
-            refresh(hChart, hData, hColors, hRadii); // Updated to pass anomaly info
-            refresh(lChart, lData, lColors, lRadii); // Updated to pass anomaly info
+            refresh(hChart, hData, hColors, hRadii); 
+            refresh(lChart, lData, lColors, lRadii); 
         });
     }
 
