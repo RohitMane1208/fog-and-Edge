@@ -57,12 +57,13 @@
     </table>
 
     <script>
-    const chartOptions = (label, color) => ({
+    // All chart border colors are now set to a dark "black/grey" (#333)
+    const chartOptions = (label) => ({
         type: 'line',
         data: {
             labels: [],
             datasets: [{
-                label: label, data: [], borderColor: color, borderWidth: 2,
+                label: label, data: [], borderColor: '#333', borderWidth: 2,
                 backgroundColor: 'transparent', pointBackgroundColor: [], 
                 pointRadius: [], fill: false, tension: 0.2
             }]
@@ -70,16 +71,14 @@
         options: { responsive: true, maintainAspectRatio: false, animation: false }
     });
 
-    // Initialize Charts
-    const pChart = new Chart(document.getElementById('powerChart'), chartOptions('Power Output (W)', '#2e7d32'));
-    const tChart = new Chart(document.getElementById('tempChart'), chartOptions('Temperature (°C)', '#f57c00'));
-    const hChart = new Chart(document.getElementById('humidityChart'), chartOptions('Humidity (%)', '#0288d1'));
-    const lChart = new Chart(document.getElementById('lightChart'), chartOptions('Light Intensity (lx)', '#fbc02d'));
+    // Initialize Charts in Black and White mode
+    const pChart = new Chart(document.getElementById('powerChart'), chartOptions('Power Output (W)'));
+    const tChart = new Chart(document.getElementById('tempChart'), chartOptions('Temperature (°C)'));
+    const hChart = new Chart(document.getElementById('humidityChart'), chartOptions('Humidity (%)'));
+    const lChart = new Chart(document.getElementById('lightChart'), chartOptions('Light Intensity (lx)'));
 
     function updateDashboard(){
-        // 1. Update Top Summary Cards
         fetch('/api/latest/').then(res => res.json()).then(data => {
-            // Note: voltage/current still exist in data but elements are removed from HTML
             if(document.getElementById('power')) document.getElementById('power').innerText = data.power_watt || 0;
             if(document.getElementById('temperature')) document.getElementById('temperature').innerText = data.temperature || 0;
             if(document.getElementById('humidity')) document.getElementById('humidity').innerText = data.humidity || 0;
@@ -92,7 +91,6 @@
             text.innerText = data.local_alert ? 'ANOMALY DETECTED' : 'SYSTEM NORMAL';
         });
 
-        // 2. Update Graphs and Log Table
         fetch('/api/recent/').then(res => res.json()).then(readings => {
             const sorted = [...readings].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             
@@ -109,29 +107,26 @@
                 const hum = parseFloat(r.humidity || 0);
                 const lgt = parseFloat(r.light_intensity || 0);
 
-                pData.push(pwr);
-                tData.push(tmp);
-                hData.push(hum);
-                lData.push(lgt);
+                pData.push(pwr); tData.push(tmp); hData.push(hum); lData.push(lgt);
 
-                // --- Temperature Anomaly ---
+                // --- Anomaly Highlighting (Red dots stay) ---
+                // Temperature Anomaly
                 if (tmp > 75) { tColors.push('#cf1322'); tRadii.push(6); } 
                 else { tColors.push('transparent'); tRadii.push(0); }
 
-                // --- Power Anomaly ---
+                // Power Anomaly
                 if (pwr < 50 && lgt > 800) { pColors.push('#cf1322'); pRadii.push(6); } 
                 else { pColors.push('transparent'); pRadii.push(0); }
 
-                // --- Humidity Anomaly ---
+                // Humidity Anomaly
                 if (hum > 80) { hColors.push('#cf1322'); hRadii.push(6); }
                 else { hColors.push('transparent'); hRadii.push(0); }
 
-                // --- Light Anomaly ---
+                // Light Anomaly
                 if (lgt > 1000) { lColors.push('#cf1322'); lRadii.push(6); }
                 else { lColors.push('transparent'); lRadii.push(0); }
             });
 
-            // Update Log Table
             const tableBody = document.querySelector('#recent-readings tbody');
             tableBody.innerHTML = ''; 
             readings.forEach(r => {
@@ -144,15 +139,11 @@
                 row.insertCell(4).innerText = (r.light_intensity || 0) + " lx";
             });
 
-            // Universal Refresh Helper
             const refresh = (chart, data, colors = [], radii = []) => {
                 chart.data.labels = labels;
                 chart.data.datasets[0].data = data;
-                
-                // Logic change: If radii is not explicitly an anomaly (size 6), set to 0 to hide the "spike"
-                chart.data.datasets[0].pointBackgroundColor = colors.length > 0 ? colors : chart.data.datasets[0].borderColor;
-                chart.data.datasets[0].pointRadius = radii.length > 0 ? radii : 0; 
-                
+                chart.data.datasets[0].pointBackgroundColor = colors;
+                chart.data.datasets[0].pointRadius = radii; 
                 chart.update('none');
             };
 
